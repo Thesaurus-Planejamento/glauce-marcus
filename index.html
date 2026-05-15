@@ -84,6 +84,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .footer p{font-size:.65rem;color:var(--muted);font-family:'DM Mono',monospace}
 .powered span{color:var(--accent)}
 .clickable-hint{font-size:.6rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:.4rem;text-align:center}
+@keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
 </style>
 </head>
 <body>
@@ -817,6 +818,5 @@ function closeMonthDetail(){
   <div id="catPanelItens" style="display:flex;flex-direction:column;gap:.4rem"></div>
 </div>
 <div id="catPanelOverlay" onclick="closeCatPanel()" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,.4);z-index:999"></div>
-@keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
 </body>
 </html>

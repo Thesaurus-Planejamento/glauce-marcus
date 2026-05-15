@@ -644,7 +644,7 @@ mesesAbrev.forEach((m,i)=>{
 function buildMonthGrid(){
   const grid=document.getElementById('monthGrid');
   grid.innerHTML='';
-  mesesFull.forEach((mf,i)=>{
+  mesesFull.forEach(function(mf,i){
     const g=gastosArr[i],l=limitesArr[i];
     const over=g>l,pct=l>0?Math.min(g/l*100,100):0;
     const cor=over?'var(--red)':g>0?'var(--blue)':'var(--muted)';
@@ -653,28 +653,27 @@ function buildMonthGrid(){
     const card=document.createElement('div');
     card.style.cssText='background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 1.1rem;cursor:'+(g>0?'pointer':'default')+';transition:border-color .15s;position:relative;overflow:hidden';
     if(g>0){
-      card.onmouseenter=()=>card.style.borderColor=over?'rgba(224,92,92,.4)':'rgba(91,141,238,.4)';
-      card.onmouseleave=()=>card.style.borderColor='var(--border)';
-      card.onclick=()=>openMonthDetail(i);
+      card.onmouseenter=function(){card.style.borderColor=over?'rgba(224,92,92,.4)':'rgba(91,141,238,.4)';};
+      card.onmouseleave=function(){card.style.borderColor='var(--border)';};
+      card.onclick=function(){openMonthDetail(i);};
     }
-    card.innerHTML=
-      '<div style="position:absolute;top:0;left:0;right:0;height:2px;background:'+cor+';opacity:.6"></div>'
-      +'<div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">'+mf+'</div>'
-      +'<div style="font-family:'DM Serif Display',serif;font-size:1.25rem;letter-spacing:-.02em;color:'+(g>0?'var(--text)':'var(--muted)')+'">'+( g>0?fmtK(g):'—')+'</div>'
-      +(g>0
-        ? '<div style="margin-top:7px;height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden"><div style="width:'+pct.toFixed(0)+'%;height:100%;background:'+cor+';border-radius:2px"></div></div>'
-          +'<div style="display:flex;justify-content:space-between;margin-top:3px">'
-          +'<span style="font-size:.58rem;color:var(--muted);font-family:'DM Mono',monospace">Limite: '+fmtK(l)+'</span>'
-          +'<span style="font-size:.58rem;color:'+cor+';font-family:'DM Mono',monospace">'+pct.toFixed(0)+'%</span></div>'
-          +(recReal>0?'<div style="margin-top:5px;font-size:.62rem;color:var(--green);font-family:'DM Mono',monospace">↑ Receita: '+fmtK(recReal)+'</div>':'')
-          +'<div style="margin-top:4px;font-size:.62rem;color:'+(over?'var(--red)':'var(--muted)')+'">'+( over?'⚠ Acima do limite':'→ Ver detalhe')+'</div>'
-        : '<div style="margin-top:5px;font-size:.62rem;color:var(--muted)">Sem dados</div>'
-      );
+    var inner='<div style="position:absolute;top:0;left:0;right:0;height:2px;background:'+cor+';opacity:.6"></div>';
+    inner+='<div style="font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">'+mf+'</div>';
+    inner+='<div style="font-size:1.25rem;letter-spacing:-.02em;color:'+(g>0?'var(--text)':'var(--muted)')+'">'+( g>0?fmtK(g):'—')+'</div>';
+    if(g>0){
+      inner+='<div style="margin-top:7px;height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden"><div style="width:'+pct.toFixed(0)+'%;height:100%;background:'+cor+';border-radius:2px"></div></div>';
+      inner+='<div style="display:flex;justify-content:space-between;margin-top:3px">';
+      inner+='<span style="font-size:.58rem;color:var(--muted)">Limite: '+fmtK(l)+'</span>';
+      inner+='<span style="font-size:.58rem;color:'+cor+'">'+pct.toFixed(0)+'%</span></div>';
+      if(recReal>0) inner+='<div style="margin-top:5px;font-size:.62rem;color:var(--green)">↑ Receita: '+fmtK(recReal)+'</div>';
+      inner+='<div style="margin-top:4px;font-size:.62rem;color:'+(over?'var(--red)':'var(--muted)')+'">'+( over?'⚠ Acima do limite':'→ Ver detalhe')+'</div>';
+    } else {
+      inner+='<div style="margin-top:5px;font-size:.62rem;color:var(--muted)">Sem dados</div>';
+    }
+    card.innerHTML=inner;
     grid.appendChild(card);
   });
 }
-
-let donutMesChart=null, lineChartMesViewInstance=null, barMesChartInstance=null, catSelMes=null;
 
 function openMonthDetail(idx){
   const d=dadosMes[idx];

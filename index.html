@@ -366,7 +366,53 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </div>
 
 <div id="month-view" style="display:none">
-  <div id="monthGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem"></div>
+  <!-- GRADE DE MESES (seleção) -->
+  <div id="monthGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1rem"></div>
+
+  <!-- VISÃO DETALHADA DO MÊS SELECIONADO -->
+  <div id="monthDetail" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <div style="font-family:'DM Serif Display',serif;font-size:1.4rem;font-weight:400" id="monthDetailTitle">—</div>
+      <button onclick="closeMonthDetail()" style="font-family:'DM Mono',monospace;font-size:.65rem;color:#7a7875;background:transparent;border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:.3rem .75rem;cursor:pointer">← Voltar para meses</button>
+    </div>
+
+    <!-- MÉTRICAS DO MÊS -->
+    <div class="metrics" id="monthDetailMetrics"></div>
+
+    <!-- RESUMO + GASTOS POR CATEGORIA -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Gastos por categoria <span id="monthCatSel" style="display:none"></span></div>
+        <div style="display:flex;gap:1.25rem;align-items:flex-start">
+          <div style="position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0;width:130px;height:130px">
+            <canvas id="donutMes" width="130" height="130"></canvas>
+            <div style="position:absolute;text-align:center;pointer-events:none">
+              <span style="font-family:'DM Serif Display',serif;font-size:1rem;display:block" id="donutMesTotal">—</span>
+              <span style="font-size:.55rem;color:#7a7875;font-family:'DM Mono',monospace;text-transform:uppercase">total</span>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:.35rem;max-height:220px;overflow-y:auto" id="donutMesLegend"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Ranking do mês</div>
+        <div id="monthRanking" style="display:flex;flex-direction:column;gap:.5rem"></div>
+      </div>
+    </div>
+
+    <!-- GRÁFICO DE LINHA DOS DIAS -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Gastos por dia</div>
+        <div style="height:200px"><canvas id="lineChartMesView"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Limite vs. gasto</div>
+        <div style="height:200px"><canvas id="barMesChart"></canvas></div>
+        <div style="font-size:.6rem;color:#7a7875;font-family:'DM Mono',monospace;margin-top:.4rem;text-align:center">Clique na categoria do donut para ver os lançamentos</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="footer">
@@ -604,28 +650,147 @@ function buildMonthGrid(){
     const recMes=receitasPorMes[mf];
     const recReal=recMes?recMes.realizado:0;
     const card=document.createElement('div');
-    card.style.cssText=`background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 1.1rem;cursor:${g>0?'pointer':'default'};transition:border-color .15s;position:relative;overflow:hidden`;
+    card.style.cssText='background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 1.1rem;cursor:'+(g>0?'pointer':'default')+';transition:border-color .15s;position:relative;overflow:hidden';
     if(g>0){
       card.onmouseenter=()=>card.style.borderColor=over?'rgba(224,92,92,.4)':'rgba(91,141,238,.4)';
       card.onmouseleave=()=>card.style.borderColor='var(--border)';
-      card.onclick=()=>openPanel(i);
+      card.onclick=()=>openMonthDetail(i);
     }
-    card.innerHTML=`
-      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:${cor};opacity:.6"></div>
-      <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">${mf}</div>
-      <div style="font-family:'DM Serif Display',serif;font-size:1.25rem;letter-spacing:-.02em;color:${g>0?'var(--text)':'var(--muted)'}">${g>0?fmtK(g):'—'}</div>
-      ${g>0?`
-      <div style="margin-top:7px;height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden"><div style="width:${pct.toFixed(0)}%;height:100%;background:${cor};border-radius:2px"></div></div>
-      <div style="display:flex;justify-content:space-between;margin-top:3px">
-        <span style="font-size:.58rem;color:var(--muted);font-family:'DM Mono',monospace">Limite: ${fmtK(l)}</span>
-        <span style="font-size:.58rem;color:${cor};font-family:'DM Mono',monospace">${pct.toFixed(0)}%</span>
-      </div>
-      ${recReal>0?`<div style="margin-top:5px;font-size:.62rem;color:var(--green);font-family:'DM Mono',monospace">↑ Receita: ${fmtK(recReal)}</div>`:''}
-      <div style="margin-top:4px;font-size:.62rem;color:${over?'var(--red)':'var(--muted)'}">${over?'⚠ Acima do limite':'→ Ver detalhe'}</div>
-      `:'<div style="margin-top:5px;font-size:.62rem;color:var(--muted)">Sem dados</div>'}
-    `;
+    card.innerHTML=
+      '<div style="position:absolute;top:0;left:0;right:0;height:2px;background:'+cor+';opacity:.6"></div>'
+      +'<div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">'+mf+'</div>'
+      +'<div style="font-family:'DM Serif Display',serif;font-size:1.25rem;letter-spacing:-.02em;color:'+(g>0?'var(--text)':'var(--muted)')+'">'+( g>0?fmtK(g):'—')+'</div>'
+      +(g>0
+        ? '<div style="margin-top:7px;height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden"><div style="width:'+pct.toFixed(0)+'%;height:100%;background:'+cor+';border-radius:2px"></div></div>'
+          +'<div style="display:flex;justify-content:space-between;margin-top:3px">'
+          +'<span style="font-size:.58rem;color:var(--muted);font-family:'DM Mono',monospace">Limite: '+fmtK(l)+'</span>'
+          +'<span style="font-size:.58rem;color:'+cor+';font-family:'DM Mono',monospace">'+pct.toFixed(0)+'%</span></div>'
+          +(recReal>0?'<div style="margin-top:5px;font-size:.62rem;color:var(--green);font-family:'DM Mono',monospace">↑ Receita: '+fmtK(recReal)+'</div>':'')
+          +'<div style="margin-top:4px;font-size:.62rem;color:'+(over?'var(--red)':'var(--muted)')+'">'+( over?'⚠ Acima do limite':'→ Ver detalhe')+'</div>'
+        : '<div style="margin-top:5px;font-size:.62rem;color:var(--muted)">Sem dados</div>'
+      );
     grid.appendChild(card);
   });
+}
+
+let donutMesChart=null, lineChartMesViewInstance=null, barMesChartInstance=null, catSelMes=null;
+
+function openMonthDetail(idx){
+  const d=dadosMes[idx];
+  if(!d)return;
+  const mf=mesesFull[idx];
+  document.getElementById('monthDetailTitle').innerHTML=mf+' <em style="font-style:italic;color:var(--accent)">'+anoAtual+'</em>';
+
+  // Métricas
+  const ant=dadosMes[idx-1];
+  const diff=d.total-d.limite;
+  const recMes=receitasPorMes[mf];
+  const recReal=recMes?recMes.realizado:0;
+  let vsAnt='—', vsAntColor='var(--muted)';
+  if(ant){ const d2=d.total-ant.total; const p=((d2/ant.total)*100).toFixed(0); vsAnt=(d2>0?'+':'')+p+'%'; vsAntColor=d2>0?'var(--red)':'var(--green)'; }
+  document.getElementById('monthDetailMetrics').innerHTML=
+    '<div class="metric '+(d.total>d.limite?'danger':'safe')+'">'
+    +'<label>Total do mês</label><div class="value">'+fmtK(d.total)+'</div>'
+    +'<div class="sub">Limite: '+fmtK(d.limite)+'</div></div>'
+    +'<div class="metric '+(diff>0?'danger':'safe')+'">'
+    +'<label>vs. Limite</label>'
+    +'<div class="value" style="color:'+(diff>0?'var(--red)':'var(--green)')+'">'+( diff>0?'+':'')+fmtK(Math.abs(diff))+'</div>'
+    +'<div class="sub">'+(diff>0?'Acima':'Abaixo')+' do limite</div></div>'
+    +'<div class="metric">'
+    +'<label>vs. Mês anterior</label>'
+    +'<div class="value" style="color:'+vsAntColor+'">'+vsAnt+'</div>'
+    +'<div class="sub">Em relação ao mês anterior</div></div>'
+    +'<div class="metric '+(recReal>0?'safe':'warn')+'">'
+    +'<label>Receita do mês</label>'
+    +'<div class="value" style="color:'+(recReal>0?'var(--green)':'var(--muted)')+'">'+( recReal>0?fmtK(recReal):'—')+'</div>'
+    +'<div class="sub">'+(recMes&&recMes.planejado>0?'Planejado: '+fmtK(recMes.planejado):'Sem dados')+'</div></div>';
+
+  // Donut do mês
+  if(donutMesChart){donutMesChart.destroy();donutMesChart=null;}
+  catSelMes=null;
+  document.getElementById('monthCatSel').style.display='none';
+  const catsMes=d.catMes;
+  const cores=catsMes.map(c=>c.cor);
+  const totalMes=d.total;
+  document.getElementById('donutMesTotal').textContent=fmtK(totalMes);
+  donutMesChart=new Chart(document.getElementById('donutMes'),{
+    type:'doughnut',
+    data:{labels:catsMes.map(c=>c.nome),datasets:[{data:catsMes.map(c=>c.valor),backgroundColor:cores,borderWidth:0,hoverOffset:6}]},
+    options:{responsive:false,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.label+': '+fmtK(ctx.parsed)}}},
+      onClick:(e,els)=>{if(els.length){toggleCatMes(els[0].index,catsMes,cores,totalMes);openCatPanel(catsMes[els[0].index].nome);}}}
+  });
+  const leg=document.getElementById('donutMesLegend');
+  leg.innerHTML='';
+  catsMes.forEach((c,i)=>{
+    const pct=(c.valor/totalMes*100).toFixed(1);
+    const el=document.createElement('div');
+    el.style.cssText='display:flex;align-items:center;gap:.45rem;padding:.3rem .45rem;border-radius:6px;cursor:pointer;border:1px solid transparent';
+    el.innerHTML='<div style="width:7px;height:7px;border-radius:50%;background:'+c.cor+';flex-shrink:0"></div>'
+      +'<span style="flex:1;font-size:.72rem;color:#f0ede8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+c.nome+'</span>'
+      +'<span style="font-family:monospace;font-size:.68rem;color:#7a7875">'+fmtK(c.valor)+'</span>'
+      +'<span style="font-family:monospace;font-size:.65rem;min-width:30px;text-align:right;color:'+c.cor+'">'+pct+'%</span>';
+    el.onclick=()=>{toggleCatMes(i,catsMes,cores,totalMes);openCatPanel(c.nome);};
+    leg.appendChild(el);
+  });
+
+  // Ranking do mês
+  const maxCat=catsMes[0]?.valor||1;
+  document.getElementById('monthRanking').innerHTML=catsMes.slice(0,8).map((c,i)=>{
+    const barW=(c.valor/maxCat*100).toFixed(0);
+    const pct=(c.valor/totalMes*100).toFixed(1);
+    return '<div style="display:flex;align-items:center;gap:.65rem">'
+      +'<span style="font-family:monospace;font-size:.62rem;color:#7a7875;width:16px;text-align:center">#'+(i+1)+'</span>'
+      +'<div style="width:7px;height:7px;border-radius:50%;background:'+c.cor+';flex-shrink:0"></div>'
+      +'<span style="flex:1;font-size:.75rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+c.nome+'</span>'
+      +'<div style="flex:2;height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden"><div style="width:'+barW+'%;height:100%;background:'+c.cor+';border-radius:2px"></div></div>'
+      +'<span style="font-family:monospace;font-size:.7rem;color:#7a7875;min-width:50px;text-align:right">'+fmtK(c.valor)+'</span>'
+      +'<span style="font-family:monospace;font-size:.65rem;color:'+c.cor+';min-width:30px;text-align:right">'+pct+'%</span>'
+      +'</div>';
+  }).join('');
+
+  // Gráfico de linha dos dias
+  if(lineChartMesViewInstance){lineChartMesViewInstance.destroy();lineChartMesViewInstance=null;}
+  lineChartMesViewInstance=new Chart(document.getElementById('lineChartMesView'),{
+    type:'line',
+    data:{labels:d.diasLabels,datasets:[{label:'Gasto',data:d.diasValues,borderColor:'#5b8dee',backgroundColor:'rgba(91,141,238,.08)',fill:true,tension:.3,pointRadius:d.diasValues.map(v=>v>0?3:0),pointBackgroundColor:'#5b8dee'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y>0?'R$ '+ctx.parsed.y.toLocaleString('pt-BR',{minimumFractionDigits:2}):null,title:ctx=>'Dia '+ctx[0].label}}},scales:{x:{ticks:{color:'#7a7875',font:{size:8,family:'DM Mono'},maxTicksLimit:15},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#7a7875',font:{size:8},callback:v=>v>0?'R$'+(v/1000).toFixed(0)+'k':''},grid:{color:'rgba(255,255,255,.04)'}}}}
+  });
+
+  // Gráfico de barras categorias do mês
+  if(barMesChartInstance){barMesChartInstance.destroy();barMesChartInstance=null;}
+  barMesChartInstance=new Chart(document.getElementById('barMesChart'),{
+    type:'bar',
+    data:{labels:catsMes.slice(0,8).map(c=>c.nome),datasets:[{label:'Gasto',data:catsMes.slice(0,8).map(c=>c.valor),backgroundColor:catsMes.slice(0,8).map(c=>c.cor),borderWidth:0,borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>fmt(ctx.parsed.x)}}},scales:{x:{ticks:{color:'#7a7875',font:{size:8},callback:v=>'R$'+(v/1000).toFixed(0)+'k'},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#7a7875',font:{size:9,family:'DM Mono'}},grid:{display:false}}}}
+  });
+
+  document.getElementById('monthDetail').style.display='block';
+  document.getElementById('monthGrid').style.marginBottom='1rem';
+  document.getElementById('monthDetail').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function toggleCatMes(idx,catsMes,cores,totalMes){
+  if(catSelMes===idx){
+    catSelMes=null;
+    document.getElementById('monthCatSel').style.display='none';
+    donutMesChart.data.datasets[0].backgroundColor=cores;
+    donutMesChart.update();
+    document.getElementById('donutMesTotal').textContent=fmtK(totalMes);
+  } else {
+    catSelMes=idx;
+    document.getElementById('monthCatSel').textContent=catsMes[idx].nome;
+    document.getElementById('monthCatSel').style.display='';
+    donutMesChart.data.datasets[0].backgroundColor=cores.map((c,i)=>i===idx?c:c+'33');
+    donutMesChart.update();
+    document.getElementById('donutMesTotal').textContent=fmtK(catsMes[idx].valor);
+  }
+}
+
+function closeMonthDetail(){
+  document.getElementById('monthDetail').style.display='none';
+  if(donutMesChart){donutMesChart.destroy();donutMesChart=null;}
+  if(lineChartMesViewInstance){lineChartMesViewInstance.destroy();lineChartMesViewInstance=null;}
+  if(barMesChartInstance){barMesChartInstance.destroy();barMesChartInstance=null;}
 }
 </script>
 
